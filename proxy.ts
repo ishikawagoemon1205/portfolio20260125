@@ -1,5 +1,5 @@
 /**
- * Next.js Middleware
+ * Next.js Proxy (旧 Middleware)
  * 
  * - 管理者ページの認証チェック
  * - API レート制限
@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Supabase セッション更新
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Middlewareを適用するパス
+// Proxyを適用するパス
 export const config = {
   matcher: [
     /*

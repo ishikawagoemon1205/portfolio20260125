@@ -68,3 +68,22 @@ body {
     background: #9ca3af;
   }
 }
+
+/* Next.js 開発インジケーター（左下のアイコン）を非表示 */
+#__next-build-watcher,
+[data-nextjs-toast-wrapper],
+[data-nextjs-data-runtime-error-collapsed-action],
+[data-nextjs-dialog-overlay],
+nextjs-portal,
+[id^="__next"],
+[class*="nextjs"],
+[data-nextjs],
+button[aria-label*="Next"],
+div[style*="position: fixed"][style*="bottom"],
+/* 左下のビルドインジケーター */
+body > div[style*="position: fixed"][style*="z-index: 9000"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

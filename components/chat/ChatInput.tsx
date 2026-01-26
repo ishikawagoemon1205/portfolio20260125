@@ -13,6 +13,7 @@ export interface ChatInputProps {
   placeholder?: string;
   maxLength?: number;
   remainingMessages?: number;
+  onFocus?: () => void;
 }
 
 export function ChatInput({
@@ -21,6 +22,7 @@ export function ChatInput({
   placeholder = 'メッセージを入力...',
   maxLength = 2000,
   remainingMessages,
+  onFocus,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,6 +59,11 @@ export function ChatInput({
     textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
   };
   
+  const handleFocus = () => {
+    // モバイルでの不要なスクロールを防ぐため、onFocusコールバックは削除
+    // 代わりにメッセージ送信後の自動スクロールに任せる
+  };
+  
   const isOverLimit = message.length > maxLength;
   
   return (
@@ -75,16 +82,20 @@ export function ChatInput({
             value={message}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className={`w-full resize-none rounded-xl border px-4 py-3 pr-12 text-sm
+            className={`w-full resize-none rounded-xl border px-4 py-3 pr-12
               focus:outline-none focus:ring-2 focus:ring-blue-500/50
               disabled:opacity-50 disabled:cursor-not-allowed
               bg-gray-800/50 text-white border-gray-700/50
               placeholder:text-gray-500
               ${isOverLimit ? 'border-red-500/50 focus:ring-red-500/50' : ''}`}
-            style={{ maxHeight: '150px' }}
+            style={{ 
+              maxHeight: '150px',
+              fontSize: '16px', // モバイルでの自動ズーム防止
+            }}
           />
           
           {/* 文字数カウンター */}

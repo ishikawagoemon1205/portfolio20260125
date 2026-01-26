@@ -48,6 +48,14 @@ export function ChatContainer({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
   
+  // 入力フィールドフォーカス時のスクロール（モバイル対応）
+  const handleInputFocus = useCallback(() => {
+    // 少し遅延させてからスクロール（キーボード表示待ち）
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
+  }, []);
+  
   useEffect(() => {
     scrollToBottom();
   }, [messages, streamingContent, scrollToBottom]);
@@ -117,11 +125,14 @@ export function ChatContainer({
     setConversationId(undefined);
     setMessages([]);
     setError(null);
+    setShowMobileMenu(false);
   };
   
   // サイト生成
   const [isGeneratingSite, setIsGeneratingSite] = useState(false);
+  const [generatedSiteUrl, setGeneratedSiteUrl] = useState<string | null>(null);
   const [generatedSiteHtml, setGeneratedSiteHtml] = useState<string | null>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   const handleGenerateSite = async () => {
     if (!conversationId || messages.length === 0) {
@@ -260,9 +271,9 @@ export function ChatContainer({
   };
   
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900 relative">
       {/* ヘッダー */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-900 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-lg">
@@ -276,68 +287,182 @@ export function ChatContainer({
           
           {/* ヘッダーボタン群 */}
           <div className="flex items-center gap-2">
-            {/* サイト生成ボタン */}
-            {messages.length > 2 && conversationId && (
+            {/* デスクトップ表示 */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* サイト生成ボタン */}
+              {messages.length > 2 && conversationId && (
+                <button
+                  onClick={handleGenerateSite}
+                  disabled={isGeneratingSite}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 
+                    text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity
+                    flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="会話内容からサイトを生成"
+                >
+                  {isGeneratingSite ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      サイト生成
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {/* 新規会話ボタン */}
+              {messages.length > 0 && (
+                <button
+                  onClick={handleNewConversation}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
+                    hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title="新しい会話を開始"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+              
+              {/* お問い合わせボタン */}
               <button
-                onClick={handleGenerateSite}
-                disabled={isGeneratingSite}
-                className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 
+                onClick={() => setShowInquiryModal(true)}
+                className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 
                   text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity
-                  flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="会話内容からサイトを生成"
+                  flex items-center gap-1.5"
               >
-                {isGeneratingSite ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    生成中...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                お問い合わせ
+              </button>
+            </div>
+            
+            {/* モバイル表示 */}
+            <div className="flex md:hidden items-center gap-2">
+              {/* サイト生成アイコンボタン（モバイル） */}
+              {messages.length > 2 && conversationId && (
+                <button
+                  onClick={handleGenerateSite}
+                  disabled={isGeneratingSite}
+                  className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 
+                    text-white rounded-lg hover:opacity-90 transition-opacity
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="サイト生成"
+                >
+                  {isGeneratingSite ? (
+                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                         d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
-                    サイト生成
-                  </>
-                )}
-              </button>
-            )}
-            
-            {/* 新規会話ボタン */}
-            {messages.length > 0 && (
+                  )}
+                </button>
+              )}
+              
+              {/* お問い合わせアイコンボタン（モバイル） */}
               <button
-                onClick={handleNewConversation}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                  hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="新しい会話を開始"
+                onClick={() => setShowInquiryModal(true)}
+                className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 
+                  text-white rounded-lg hover:opacity-90 transition-opacity"
+                title="お問い合わせ"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </button>
-            )}
-            
-            {/* お問い合わせボタン */}
-            <button
-              onClick={() => setShowInquiryModal(true)}
-              className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 
-                text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity
-                flex items-center gap-1.5"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              お問い合わせ
-            </button>
+              
+              {/* モバイルメニューボタン */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                    hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                
+                {/* ドロップダウンメニュー */}
+                {showMobileMenu && (
+                  <div className="absolute right-0 top-12 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    {messages.length > 2 && conversationId && (
+                      <button
+                        onClick={() => {
+                          handleGenerateSite();
+                          setShowMobileMenu(false);
+                        }}
+                        disabled={isGeneratingSite}
+                        className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50 rounded-t-lg"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        {isGeneratingSite ? '生成中...' : 'サイト生成'}
+                      </button>
+                    )}
+                    {messages.length > 0 && (
+                      <button
+                        onClick={() => {
+                          handleNewConversation();
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        新しい会話
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowInquiryModal(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-b-lg"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      お問い合わせ
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
       
+      {/* メニュー開いてる時のオーバーレイ（タップで閉じる） */}
+      {showMobileMenu && (
+        <div 
+          className="fixed inset-0 z-40 md:hidden" 
+          onClick={() => setShowMobileMenu(false)}
+        />
+      )}
+      
       {/* メッセージ一覧 */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain"
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          minHeight: 0,
+        }}
       >
         {/* 履歴読み込み中 */}
         {isLoadingHistory && (
@@ -359,9 +484,15 @@ export function ChatContainer({
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               こんにちは！あっちゃんAIです
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-6">
+            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-3">
               フリーランスエンジニアの石川篤寛のAI分身です。
               お仕事のご相談、技術的な質問、なんでもお気軽にどうぞ！
+            </p>
+            
+            {/* 注釈 */}
+            <p className="text-xs text-gray-500 dark:text-gray-500 max-w-md mx-auto mb-6">
+              ※ このAIは石川篤寛のプロフィール情報を学習しています。<br />
+              正確な情報は直接お問い合わせください。
             </p>
             
             {/* クイックアクション */}
@@ -456,11 +587,14 @@ export function ChatContainer({
       </div>
       
       {/* 入力エリア */}
-      <ChatInput
-        onSend={handleSend}
-        disabled={isLoading || isLoadingHistory}
-        remainingMessages={remainingMessages}
-      />
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-10">
+        <ChatInput
+          onSend={handleSend}
+          onFocus={handleInputFocus}
+          disabled={isLoading || isLoadingHistory}
+          remainingMessages={remainingMessages}
+        />
+      </div>
       
       {/* 問い合わせモーダル */}
       <InquiryModal

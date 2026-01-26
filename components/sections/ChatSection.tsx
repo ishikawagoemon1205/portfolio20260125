@@ -32,19 +32,20 @@ export function ChatSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
-          style={{ height: '600px' }}
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden
+            h-[500px] md:h-[700px]"
         >
           <ChatContainer />
         </motion.div>
         
-        {/* 補足情報 */}
+        {/* 補足情報（削除） */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
           className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400"
+          style={{ display: 'none' }}
         >
           <p>
             ※ このAIは石川篤寛のプロフィール情報を学習しています。

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>アイコン生成</title>
+</head>
+<body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 背景（紫）
+        ctx.fillStyle = '#8B5CF6';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 512, 512, 100);
+        ctx.fill();
+        
+        // ロボットの頭（白）
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.roundRect(150, 130, 212, 180, 25);
+        ctx.fill();
+        
+        // 左目
+        ctx.fillStyle = '#8B5CF6';
+        ctx.beginPath();
+        ctx.arc(210, 190, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 右目
+        ctx.beginPath();
+        ctx.arc(302, 190, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 口
+        ctx.fillStyle = '#8B5CF6';
+        ctx.fillRect(210, 250, 92, 10);
+        ctx.fillRect(210, 270, 72, 10);
+        
+        // アンテナ
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(256, 130);
+        ctx.lineTo(256, 80);
+        ctx.stroke();
+        
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(256, 65, 15, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 体
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.roundRect(175, 310, 162, 132, 15);
+        ctx.fill();
+        
+        // 左腕
+        ctx.beginPath();
+        ctx.roundRect(125, 335, 50, 15, 7.5);
+        ctx.fill();
+        
+        // 右腕
+        ctx.beginPath();
+        ctx.roundRect(337, 335, 50, 15, 7.5);
+        ctx.fill();
+        
+        // ダウンロード
+        setTimeout(() => {
+            const link = document.createElement('a');
+            link.download = 'icon.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }, 100);
+    </script>
+</body>
+</html>

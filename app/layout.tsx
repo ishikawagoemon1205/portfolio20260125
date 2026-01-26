@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "あっちゃんAI - 石川敦大のポートフォリオ",
-  description: "フリーランスエンジニア 石川敦大のAI分身とチャットできるポートフォリオサイト",
+  title: "あっちゃんAI - なんでもご相談ください",
+  description: "開発のこと、技術のこと、気になることなんでも聞いてください。フリーランスエンジニア石川敦大のAI分身が24時間対応します",
 };
 
 export default function RootLayout({

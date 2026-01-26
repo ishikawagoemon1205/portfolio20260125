@@ -485,20 +485,21 @@ export function ChatContainer({
               こんにちは！あっちゃんAIです
             </h3>
             <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-3">
-              フリーランスエンジニアの石川篤寛のAI分身です。
+              フリーランスエンジニアの石川敦大のAI分身です。
               お仕事のご相談、技術的な質問、なんでもお気軽にどうぞ！
             </p>
             
             {/* 注釈 */}
             <p className="text-xs text-gray-500 dark:text-gray-500 max-w-md mx-auto mb-6">
-              ※ このAIは石川篤寛のプロフィール情報を学習しています。<br />
+              ※ このAIは石川敦大のプロフィール情報を学習しています。<br />
               正確な情報は直接お問い合わせください。
             </p>
             
             {/* クイックアクション */}
             <div className="flex flex-wrap justify-center gap-2">
               {[
-                '🚀 どんな開発ができる？',
+                '� あっちゃんってどんな人？',
+                '�🚀 どんな開発ができる？',
                 '💼 仕事を依頼したい',
                 '📋 見積もりをお願い',
               ].map((text) => (
@@ -593,6 +594,7 @@ export function ChatContainer({
           onFocus={handleInputFocus}
           disabled={isLoading || isLoadingHistory}
           remainingMessages={remainingMessages}
+          onOpenInquiry={() => setShowInquiryModal(true)}
         />
       </div>
       

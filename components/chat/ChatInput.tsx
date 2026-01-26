@@ -14,6 +14,7 @@ export interface ChatInputProps {
   maxLength?: number;
   remainingMessages?: number;
   onFocus?: () => void;
+  onOpenInquiry?: () => void; // お問い合わせモーダルを開く
 }
 
 export function ChatInput({
@@ -23,6 +24,7 @@ export function ChatInput({
   maxLength = 2000,
   remainingMessages,
   onFocus,
+  onOpenInquiry,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -65,14 +67,46 @@ export function ChatInput({
   };
   
   const isOverLimit = message.length > maxLength;
+  const isAtLimit = remainingMessages !== undefined && remainingMessages <= 0;
   
   return (
     <div className="border-t border-gray-700/50 bg-gradient-to-b from-gray-800/95 to-gray-900/95 backdrop-blur-sm p-4">
-      {/* 残りメッセージ数表示 */}
-      {remainingMessages !== undefined && remainingMessages >= 0 && (
-        <div className="text-xs text-gray-400 mb-2 text-center">
-          本日残り {remainingMessages} メッセージ
+      {/* 上限到達時の案内 */}
+      {isAtLimit ? (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-3">
+          <p className="text-red-400 text-sm mb-3 text-center">
+            本日のメッセージ上限に達しました。リセットまで: 974分
+          </p>
+          <button
+            onClick={onOpenInquiry}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 
+              text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity
+              flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+              />
+            </svg>
+            続きはお問い合わせから
+          </button>
         </div>
+      ) : (
+        /* 残りメッセージ数表示 */
+        remainingMessages !== undefined && remainingMessages >= 0 && (
+          <div className="text-xs text-gray-400 mb-2 text-center">
+            本日残り {remainingMessages} メッセージ
+          </div>
+        )
       )}
       
       <div className="flex gap-2 items-end">
@@ -84,7 +118,7 @@ export function ChatInput({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             placeholder={placeholder}
-            disabled={disabled}
+            disabled={disabled || isAtLimit}
             rows={1}
             className={`w-full resize-none rounded-xl border px-4 py-3 pr-12
               focus:outline-none focus:ring-2 focus:ring-blue-500/50
@@ -110,7 +144,7 @@ export function ChatInput({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSubmit}
-          disabled={disabled || !message.trim() || isOverLimit}
+          disabled={disabled || !message.trim() || isOverLimit || isAtLimit}
           className="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-500 text-white
             flex items-center justify-center
             hover:bg-blue-600 transition-colors

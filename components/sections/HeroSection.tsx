@@ -58,7 +58,7 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto"
         >
-          フリーランスエンジニア・石川篤寛のAI分身です。
+          フリーランスエンジニア・石川敦大のAI分身です。
           <br />
           お仕事のご相談、技術的な質問、なんでもお気軽にどうぞ！
         </motion.p>

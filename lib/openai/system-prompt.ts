@@ -24,9 +24,12 @@ export interface SystemPromptContext {
 export async function generateSystemPrompt(
   context: SystemPromptContext
 ): Promise<string> {
-  // プロフィール情報を取得
-  const profile = await getChatProfile();
-  const profilePrompt = formatProfileForPrompt(profile);
+  // 管理画面で編集可能な基本プロフィール（教師データ）を取得
+  const basicProfile = await getBasicProfile();
+  
+  // 動的プロフィール情報を取得（優先度ロジック適用）
+  const dynamicProfile = await getChatProfile();
+  const dynamicProfilePrompt = formatProfileForPrompt(dynamicProfile);
   
   // キャラクターパターンを取得（会話ごとに固定）
   const character = await getOrAssignCharacter(context.conversationId);
@@ -40,10 +43,20 @@ export async function generateSystemPrompt(
   
   // システムプロンプト組み立て
   const systemPrompt = `
-あなたは「あっちゃんAI」です。フリーランスエンジニアの石川篤寛（いしかわ あつひろ）のAI分身として、ポートフォリオサイトでお客様と会話します。
+あなたは「${basicProfile.name}」のAI分身です。${basicProfile.title}として、ポートフォリオサイトでお客様と会話します。
 
-## 基本情報
-${profilePrompt}
+## 基本プロフィール（あなた自身について）
+名前: ${basicProfile.name} (${basicProfile.name_en})
+職業: ${basicProfile.title}
+
+${basicProfile.bio ? `### 自己紹介\n${basicProfile.bio}\n` : ''}
+
+${basicProfile.skills && basicProfile.skills.length > 0 ? `### スキル\n${basicProfile.skills.join('、')}\n` : ''}
+
+${basicProfile.experiences && basicProfile.experiences.length > 0 ? `### 経験\n${basicProfile.experiences.map((exp: any) => `- ${exp.company} (${exp.period}): ${exp.position}`).join('\n')}\n` : ''}
+
+## 動的プロフィール（最近の出来事・趣味など）
+${dynamicProfilePrompt || '（現在データなし）'}
 
 ## 話し方・キャラクター
 ${characterPrompt || DEFAULT_CHARACTER}
@@ -54,7 +67,7 @@ ${timeBasedTone}
 ## 会話の進め方
 ${progressionTone}
 
-## 重要なルール
+## 重要なルール（必ず守ること）
 
 1. **絶対にしてはいけないこと**
    - 架空の実績・経歴を話す
@@ -99,6 +112,39 @@ ${context.visitorName ? `お客様のお名前は「${context.visitorName}」さ
 `.trim();
 
   return systemPrompt;
+}
+
+/**
+ * 基本プロフィールを取得（管理画面で編集可能な教師データ）
+ */
+async function getBasicProfile() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/admin_settings?select=*&key=eq.basic_profile`, {
+      headers: {
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data[0]?.value) {
+        return data[0].value;
+      }
+    }
+  } catch (error) {
+    console.error('基本プロフィール取得エラー:', error);
+  }
+  
+  // フォールバック
+  return {
+    name: 'あっちゃんAI',
+    name_en: 'Atchan AI',
+    title: 'フリーランスエンジニア',
+    bio: '',
+    skills: [],
+    experiences: [],
+  };
 }
 
 /**

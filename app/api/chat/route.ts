@@ -200,6 +200,12 @@ export async function POST(request: NextRequest) {
           // 最終結果（usage情報）
           const finalResult = result.value;
           
+          console.log('[Chat API] AIメッセージ保存開始:', {
+            conversationId,
+            contentLength: fullResponse.length,
+            tokensUsed: finalResult.usage.totalTokens
+          });
+          
           // AIレスポンスを保存
           const { data: aiMessage, error: aiMessageError } = await (supabase as any)
             .from('messages')
@@ -211,6 +217,15 @@ export async function POST(request: NextRequest) {
             })
             .select()
             .single();
+          
+          if (aiMessageError) {
+            console.error('[Chat API] AIメッセージ保存エラー:', aiMessageError);
+          } else {
+            console.log('[Chat API] AIメッセージ保存成功:', {
+              messageId: aiMessage?.id,
+              role: aiMessage?.role
+            });
+          }
           
           if (!aiMessageError && aiMessage) {
             // 使用量を記録

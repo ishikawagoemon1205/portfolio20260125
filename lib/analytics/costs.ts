@@ -24,7 +24,7 @@ export interface UsageRecord {
  * 使用量を記録
  */
 export async function recordUsage(record: UsageRecord): Promise<void> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   const totalTokens = record.promptTokens + record.completionTokens;
   const costUsd = estimateCost(record.promptTokens, record.completionTokens, record.model);
@@ -70,7 +70,7 @@ export interface CostStats {
  * コスト統計を取得
  */
 export async function getCostStats(period: 'today' | 'week' | 'month' | 'all' = 'month'): Promise<CostStats> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   let startDate: string | null = null;
   const now = new Date();
@@ -164,7 +164,7 @@ export interface DailyCost {
 }
 
 export async function getDailyCosts(days: number = 30): Promise<DailyCost[]> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
   

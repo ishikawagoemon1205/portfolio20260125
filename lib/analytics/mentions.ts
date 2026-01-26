@@ -24,7 +24,7 @@ export interface RecordMentionRequest {
  * 言及を記録
  */
 export async function recordMention(request: RecordMentionRequest): Promise<boolean> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   const { error } = await (supabase as any)
     .from('profile_mentions')
@@ -63,7 +63,7 @@ export interface MentionStats {
  * 言及統計を取得
  */
 export async function getMentionStats(): Promise<MentionStats[]> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   // 言及データを取得
   const { data: mentions, error: mentionError } = await (supabase as any)

@@ -51,7 +51,7 @@ export interface DashboardStats {
  * ダッシュボード統計を取得
  */
 export async function getDashboardStats(period: Period = 'all'): Promise<DashboardStats> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   const startDate = getPeriodStartDate(period);
   
   // 各統計を並列で取得
@@ -125,7 +125,7 @@ export interface HourlyStats {
 }
 
 export async function getHourlyStats(period: Period = 'week'): Promise<HourlyStats[]> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   const startDate = getPeriodStartDate(period);
   
   // メッセージを取得
@@ -173,7 +173,7 @@ export interface DailyStats {
 }
 
 export async function getDailyStats(days: number = 30): Promise<DailyStats[]> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
   
@@ -232,7 +232,7 @@ export interface TopicStats {
 }
 
 export async function getTopicStats(): Promise<TopicStats[]> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   const { data: conversations, error } = await (supabase as any)
     .from('conversations')
@@ -275,7 +275,7 @@ export interface TierDistribution {
 }
 
 export async function getTierDistribution(): Promise<TierDistribution[]> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   const { data: visitors, error } = await (supabase as any)
     .from('visitors')

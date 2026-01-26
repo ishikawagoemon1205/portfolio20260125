@@ -48,7 +48,7 @@ export function ChatSection() {
           style={{ display: 'none' }}
         >
           <p>
-            ※ このAIは石川篤寛のプロフィール情報を学習しています。
+            ※ このAIは石川敦大のプロフィール情報を学習しています。
             <br />
             正確な情報は直接お問い合わせください。
           </p>

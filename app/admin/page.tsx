@@ -3,7 +3,8 @@
  */
 
 import { Suspense } from 'react';
-import { PageHeader, StatsCard } from '@/components/admin';
+import { PageHeader } from '@/components/admin';
+import { InteractiveStatsSection } from '@/components/admin/InteractiveStatsSection';
 import { createAdminClient } from '@/lib/supabase/server';
 
 async function getStats() {
@@ -84,35 +85,7 @@ async function getRecentConversations() {
   return data || [];
 }
 
-function StatsSection({ stats }: { stats: Awaited<ReturnType<typeof getStats>> }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <StatsCard
-        title="総訪問者数"
-        value={stats.visitorCount}
-        icon="👤"
-        description={`今日: ${stats.todayVisitors}人`}
-      />
-      <StatsCard
-        title="総会話数"
-        value={stats.conversationCount}
-        icon="💬"
-        description={`今日: ${stats.todayConversations}件`}
-      />
-      <StatsCard
-        title="問い合わせ"
-        value={stats.inquiryCount}
-        icon="📧"
-        description={`未対応: ${stats.newInquiries}件`}
-      />
-      <StatsCard
-        title="サイト生成"
-        value={stats.siteCount}
-        icon="🌐"
-      />
-    </div>
-  );
-}
+// InteractiveStatsSection が Stats 表示を担当
 
 function RecentInquiriesSection({ inquiries }: { inquiries: any[] }) {
   const statusColors: Record<string, string> = {
@@ -205,7 +178,7 @@ export default async function AdminDashboardPage() {
       />
 
       <Suspense fallback={<div>読み込み中...</div>}>
-        <StatsSection stats={stats} />
+        <InteractiveStatsSection stats={stats} />
       </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

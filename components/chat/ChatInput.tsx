@@ -67,14 +67,15 @@ export function ChatInput({
   };
   
   const isOverLimit = message.length > maxLength;
-  const isAtLimit = remainingMessages !== undefined && remainingMessages <= 0;
+  // -1は無制限を表すので、0以下のチェックから除外
+  const isAtLimit = remainingMessages !== undefined && remainingMessages !== -1 && remainingMessages <= 0;
   
   return (
-    <div className="border-t border-gray-700/50 bg-gradient-to-b from-gray-800/95 to-gray-900/95 backdrop-blur-sm p-4">
+    <div className="border-t border-gray-200 dark:border-gray-700/50 bg-gradient-to-b from-gray-50/95 to-gray-100/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-sm p-4">
       {/* 上限到達時の案内 */}
       {isAtLimit ? (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-3">
-          <p className="text-red-400 text-sm mb-3 text-center">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-4 mb-3">
+          <p className="text-red-600 dark:text-red-400 text-sm mb-3 text-center">
             本日のメッセージ上限に達しました。リセットまで: 974分
           </p>
           <button
@@ -101,9 +102,9 @@ export function ChatInput({
           </button>
         </div>
       ) : (
-        /* 残りメッセージ数表示 */
-        remainingMessages !== undefined && remainingMessages >= 0 && (
-          <div className="text-xs text-gray-400 mb-2 text-center">
+        /* 残りメッセージ数表示 (-1は無制限なので表示しない) */
+        remainingMessages !== undefined && remainingMessages !== -1 && remainingMessages >= 0 && (
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">
             本日残り {remainingMessages} メッセージ
           </div>
         )
@@ -123,8 +124,8 @@ export function ChatInput({
             className={`w-full resize-none rounded-xl border px-4 py-3 pr-12
               focus:outline-none focus:ring-2 focus:ring-blue-500/50
               disabled:opacity-50 disabled:cursor-not-allowed
-              bg-gray-800/50 text-white border-gray-700/50
-              placeholder:text-gray-500
+              bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700/50
+              placeholder:text-gray-400 dark:placeholder:text-gray-500
               ${isOverLimit ? 'border-red-500/50 focus:ring-red-500/50' : ''}`}
             style={{ 
               maxHeight: '150px',
@@ -134,7 +135,7 @@ export function ChatInput({
           
           {/* 文字数カウンター */}
           <div className={`absolute bottom-2 right-3 text-xs ${
-            isOverLimit ? 'text-red-500' : 'text-gray-400'
+            isOverLimit ? 'text-red-500' : 'text-gray-400 dark:text-gray-400'
           }`}>
             {message.length}/{maxLength}
           </div>

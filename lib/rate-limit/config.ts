@@ -82,14 +82,14 @@ export const siteGenerationLimiters: Record<VisitorTier, Ratelimit | null> = {
 // グローバルなIP制限（DDoS対策）
 export const ipRateLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(100, '1 h'), // 1時間あたり100リクエスト
+  limiter: Ratelimit.slidingWindow(200, '1 h'), // 1時間あたり200リクエスト（緩和）
   analytics: true,
   prefix: 'ratelimit:ip:hourly',
 });
 
 export const ipDailyLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(500, '1 d'), // 1日あたり500リクエスト
+  limiter: Ratelimit.slidingWindow(1000, '1 d'), // 1日あたり1000リクエスト（緩和）
   analytics: true,
   prefix: 'ratelimit:ip:daily',
 });
@@ -97,7 +97,7 @@ export const ipDailyLimiter = new Ratelimit({
 // APIエンドポイント全体のレート制限（バースト対策）
 export const globalApiLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(30, '1 m'), // 1分あたり30リクエスト
+  limiter: Ratelimit.slidingWindow(60, '1 m'), // 1分あたり60リクエスト（緩和）
   analytics: true,
   prefix: 'ratelimit:global',
 });

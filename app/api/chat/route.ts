@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('アクセスがブロックされています', 403);
     }
     
-    // メッセージ制限チェック
+    // メッセージ制限チェック（この時点でカウントが1増える）
     const messageLimitResult = await checkMessageRateLimit(visitor.visitorId, visitor.tier, ip);
     if (!messageLimitResult.success) {
       return errorResponse(
@@ -80,6 +80,15 @@ export async function POST(request: NextRequest) {
         429
       );
     }
+    
+    // チェック後の残りメッセージ数を保存
+    const remainingMessagesAfterCheck = messageLimitResult.remaining;
+    console.log('[Chat API] レート制限チェック完了:', {
+      success: messageLimitResult.success,
+      limit: messageLimitResult.limit,
+      remaining: remainingMessagesAfterCheck,
+      tier: visitor.tier
+    });
     
     const supabase = await createAdminClient();
     let conversationId = inputConversationId;
@@ -243,12 +252,13 @@ export async function POST(request: NextRequest) {
           // メッセージ数を更新
           await incrementMessageCount(visitor.visitorId);
           
-          // 完了イベント
+          // 完了イベント（残りメッセージ数はチェック時の値を使用）
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ 
               type: 'done', 
               usage: finalResult.usage,
-              messageId: aiMessage?.id 
+              messageId: aiMessage?.id,
+              remainingMessages: remainingMessagesAfterCheck
             })}\n\n`)
           );
           

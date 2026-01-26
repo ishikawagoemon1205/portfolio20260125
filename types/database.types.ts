@@ -499,6 +499,76 @@ export interface Database {
           updated_at?: string;
         };
       };
+      articles: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          subtitle: string | null;
+          content: string;
+          tags: string[];
+          related_experience_ids: string[];
+          thumbnail_url: string | null;
+          estimated_reading_time: number;
+          is_published: boolean;
+          published_at: string | null;
+          view_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          subtitle?: string | null;
+          content?: string;
+          tags?: string[];
+          related_experience_ids?: string[];
+          thumbnail_url?: string | null;
+          estimated_reading_time?: number;
+          is_published?: boolean;
+          published_at?: string | null;
+          view_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          title?: string;
+          subtitle?: string | null;
+          content?: string;
+          tags?: string[];
+          related_experience_ids?: string[];
+          thumbnail_url?: string | null;
+          estimated_reading_time?: number;
+          is_published?: boolean;
+          published_at?: string | null;
+          view_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      article_views: {
+        Row: {
+          id: string;
+          article_id: string;
+          visitor_id: string | null;
+          viewed_at: string;
+        };
+        Insert: {
+          id?: string;
+          article_id: string;
+          visitor_id?: string | null;
+          viewed_at?: string;
+        };
+        Update: {
+          id?: string;
+          article_id?: string;
+          visitor_id?: string | null;
+          viewed_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -552,6 +622,14 @@ export type ApiUsageUpdate = Database['public']['Tables']['api_usage']['Update']
 export type Inquiry = Database['public']['Tables']['inquiries']['Row'];
 export type InquiryInsert = Database['public']['Tables']['inquiries']['Insert'];
 export type InquiryUpdate = Database['public']['Tables']['inquiries']['Update'];
+
+export type Article = Database['public']['Tables']['articles']['Row'];
+export type ArticleInsert = Database['public']['Tables']['articles']['Insert'];
+export type ArticleUpdate = Database['public']['Tables']['articles']['Update'];
+
+export type ArticleView = Database['public']['Tables']['article_views']['Row'];
+export type ArticleViewInsert = Database['public']['Tables']['article_views']['Insert'];
+export type ArticleViewUpdate = Database['public']['Tables']['article_views']['Update'];
 
 // Inquiry status type
 export type InquiryStatus = 'new' | 'contacted' | 'in_progress' | 'completed' | 'cancelled';

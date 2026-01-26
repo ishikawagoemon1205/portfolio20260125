@@ -17,11 +17,13 @@ export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
   let response = supabaseResponse;
   
+  // パスをヘッダーに追加（レイアウトで使用）
+  response.headers.set('x-pathname', pathname);
+  
   // 管理者ページの認証チェック
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    // 本番環境では認証をチェック
-    if (process.env.NODE_ENV === 'production' && !user) {
-      // ログインページにリダイレクト
+    // 認証されていない場合はログインページにリダイレクト
+    if (!user) {
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);

@@ -49,38 +49,37 @@ export async function POST(request: NextRequest) {
 
     // Supabase Storageにアップロード
     const { error: uploadError } = await supabase.storage
-      .from('portfolio')
+      .from('portfolio20260125')
       .upload(filePath, buffer, {
         contentType: file.type,
         upsert: false,
       });
 
     if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      
+      // バケットが存在しない場合のエラーメッセージ
+      if (uploadError.message?.includes('Bucket not found')) {
+        return NextResponse.json({ 
+          error: 'Supabase Storageのバケット「portfolio20260125」が作成されていません。Supabaseダッシュボードで作成してください。',
+          details: uploadError.message 
+        }, { status: 500 });
+      }
+      
       throw uploadError;
     }
 
     // 公開URLを取得
     const { data: { publicUrl } } = supabase.storage
-      .from('portfolio')
+      .from('portfolio20260125')
       .getPublicUrl(filePath);
 
-    // データベースに保存
-    const { data: imageData, error: dbError } = await (supabase as any)
-      .from('profile_images')
-      .insert({
-        url: publicUrl,
-        alt: file.name,
-        category,
-        storage_path: filePath,
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      throw dbError;
-    }
-
-    return NextResponse.json(imageData);
+    // 記事用の画像はURLのみ返す（profile_imagesテーブルには保存しない）
+    return NextResponse.json({ 
+      url: publicUrl,
+      storage_path: filePath,
+      file_name: file.name 
+    });
   } catch (error) {
     console.error('画像アップロードエラー:', error);
     return NextResponse.json({ error: '画像のアップロードに失敗しました' }, { status: 500 });

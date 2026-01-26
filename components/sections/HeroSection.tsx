@@ -7,6 +7,14 @@
 import { motion } from 'framer-motion';
 
 export function HeroSection() {
+  // チャットセクションまでスムーズにスクロール
+  const handleScrollToChat = () => {
+    const chatSection = document.getElementById('chat');
+    if (chatSection) {
+      chatSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <section className="relative overflow-hidden py-20 px-4 md:py-32">
       {/* 背景グラデーション */}
@@ -94,9 +102,9 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <a
-            href="#chat"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-shadow"
+          <button
+            onClick={handleScrollToChat}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           >
             AIと話してみる
             <svg
@@ -113,7 +121,7 @@ export function HeroSection() {
                 d="M19 9l-7 7-7-7"
               />
             </svg>
-          </a>
+          </button>
         </motion.div>
       </div>
     </section>

@@ -27,7 +27,7 @@ export async function DELETE(
     // Storageから削除
     if (image?.storage_path) {
       await supabase.storage
-        .from('portfolio')
+        .from('portfolio20260125')
         .remove([image.storage_path]);
     }
 

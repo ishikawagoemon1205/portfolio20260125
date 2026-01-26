@@ -7,6 +7,50 @@
 
 import { formatProfileForPrompt, getChatProfile } from '@/lib/profile';
 import { formatCharacterForPrompt, getOrAssignCharacter } from '@/lib/character';
+import { createAdminClient } from '@/lib/supabase/server';
+
+/**
+ * システムプロンプト生成コンテキスト
+ */
+export interface SystemPromptContext {
+  conversationId: string;
+  visitorName?: string;
+  messageCount: number;
+  currentHour: number;
+}
+
+/**
+ * 公開中の記事一覧を取得
+ */
+async function getPublishedArticles(): Promise<{ slug: string; title: string; tags: string[] }[]> {
+  try {
+    const supabase = await createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: articles, error } = await (supabase as any)
+      .from('articles')
+      .select('slug, title, tags')
+      .eq('is_published', true)
+      .order('published_at', { ascending: false })
+      .limit(20);
+    
+    if (error) {
+      console.error('記事一覧取得エラー:', error);
+      return [];
+    }
+    
+    return articles || [];
+  } catch (error) {
+    console.error('記事一覧取得エラー:', error);
+    return [];
+  }
+}
+
+/**
+ * サイトのベースURLを取得
+ */
+function getSiteBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+}
 
 /**
  * システムプロンプト生成コンテキスト
@@ -30,6 +74,13 @@ export async function generateSystemPrompt(
   // 動的プロフィール情報を取得（優先度ロジック適用）
   const dynamicProfile = await getChatProfile();
   const dynamicProfilePrompt = formatProfileForPrompt(dynamicProfile);
+  
+  // 公開中の記事一覧を取得
+  const articles = await getPublishedArticles();
+  const baseUrl = getSiteBaseUrl();
+  const articlesPrompt = articles.length > 0
+    ? articles.map(a => `- ${a.title} (タグ: ${a.tags.join(', ')}) → ${baseUrl}/articles/${a.slug}`).join('\n')
+    : '（現在記事なし）';
   
   // キャラクターパターンを取得（会話ごとに固定）
   const character = await getOrAssignCharacter(context.conversationId);
@@ -100,6 +151,17 @@ ${progressionTone}
    - 具体的な要望（ペットプロフィール、ポートフォリオ、LP等）が出たら積極的に提案
    - **注意**: 実際にHTML/CSS/JSを作って見せることができる機能があることをアピール
    - 訪問者が承諾したら「それでは作成しますね！」と言って次の返答で実装を開始
+
+7. **技術記事の提案** 📚
+   - 訪問者の質問に関連する記事があれば、自然に提案してください
+   - 例: 「ちょうどその話題について記事を書いているので、よかったらご覧ください → [記事タイトル](完全なURL)」
+   - 押し付けがましくならないよう、会話の流れで自然に紹介
+   - 記事を読んでもらうことで専門性をアピール
+   - **重要**: 記事URLは必ず完全なURL（http://で始まる形式）で提示してください。相対パスは使用しないでください。
+
+## 📚 参考記事一覧
+以下の記事があります。関連する質問が来たら、**記載されている完全なURLをそのまま使用して**自然に紹介してください：
+${articlesPrompt}
 
 6. **問い合わせへの自然な誘導**
    - 具体的な要件が出てきたら「詳しくお聞かせいただければ、お見積りもできますよ」

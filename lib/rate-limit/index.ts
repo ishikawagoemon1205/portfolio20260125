@@ -20,15 +20,33 @@ export interface RateLimitResult {
 
 /**
  * メッセージ送信のレート制限チェック
+ * increment: trueの場合はカウントを増やす、falseの場合は確認のみ
  */
 export async function checkMessageRateLimit(
   visitorId: string,
   tier: VisitorTier,
-  ip: string
+  ip: string,
+  increment: boolean = true
 ): Promise<RateLimitResult> {
   // 開発モードでスキップ
+  console.log('[Rate Limit] checkMessageRateLimit:', { increment, tier, DEV_SKIP: process.env.DEV_SKIP_RATE_LIMIT });
   if (process.env.DEV_SKIP_RATE_LIMIT === 'true') {
+    console.log('[Rate Limit] スキップモード有効 - 制限なし');
     return { success: true, limit: -1, remaining: -1, reset: 0 };
+  }
+
+  // incrementがfalseの場合は、確認のみ（カウントしない）
+  if (!increment) {
+    console.log('[Rate Limit] 確認のみモード - カウントを増やさない');
+    // 制限値から最大値を返す（正確な残り回数は取得できないが、UIには十分）
+    const { TIER_LIMITS } = await import('@/types/database.types');
+    const limits = TIER_LIMITS[tier as VisitorTier];
+    return {
+      success: true,
+      limit: limits.messages,
+      remaining: limits.messages, // 正確ではないが、increment後の確認なので問題ない
+      reset: 0,
+    };
   }
 
   // 1. グローバルAPI制限チェック（バースト対策）
@@ -145,28 +163,68 @@ export async function checkSiteGenerationRateLimit(
 
 /**
  * 残りの制限数を取得（UI表示用）
+ * Redisから現在の使用量を直接読み取り、カウントを増やさずに残り回数を計算
  */
 export async function getRemainingLimits(
   visitorId: string,
   tier: VisitorTier
 ): Promise<{ messages: number; siteGenerations: number }> {
-  const messageLimiter = messageLimiters[tier];
-  const siteLimiter = siteGenerationLimiters[tier];
-
-  if (!messageLimiter && !siteLimiter) {
-    return { messages: -1, siteGenerations: -1 }; // 無制限
+  // 開発モードまたはTier 4（無制限）の場合
+  console.log('[Rate Limit] getRemainingLimits - DEV_SKIP:', process.env.DEV_SKIP_RATE_LIMIT, 'Tier:', tier);
+  if (process.env.DEV_SKIP_RATE_LIMIT === 'true' || tier === 4) {
+    console.log('[Rate Limit] 無制限モード - 残り: -1');
+    return { messages: -1, siteGenerations: -1 };
   }
 
-  // limit() を使って残り回数を取得（実際にはカウントしない、確認のみ）
-  const [messageResult, siteResult] = await Promise.all([
-    messageLimiter?.limit(visitorId) ?? Promise.resolve(null),
-    siteLimiter?.limit(visitorId) ?? Promise.resolve(null),
-  ]);
-
-  return {
-    messages: messageResult?.remaining ?? -1,
-    siteGenerations: siteResult?.remaining ?? -1,
-  };
+  const { TIER_LIMITS } = await import('@/types/database.types');
+  const { redis } = await import('@/lib/redis/client');
+  
+  const limits = TIER_LIMITS[tier as VisitorTier];
+  
+  try {
+    // Upstash Ratelimit Sliding Window のキーパターン
+    // プレフィックス:識別子 という形式で、値はタイムスタンプ付きのカウント情報
+    const messageKeyPattern = `ratelimit:message:tier${tier}:${visitorId}`;
+    const siteKeyPattern = `ratelimit:site:tier${tier}:${visitorId}`;
+    
+    // Redisからキーを検索（スキャン）
+    const [messageKeys, siteKeys] = await Promise.all([
+      redis.keys(`${messageKeyPattern}*`),
+      redis.keys(`${siteKeyPattern}*`),
+    ]);
+    
+    // 各キーの値を取得して合計を計算
+    let messageCount = 0;
+    let siteCount = 0;
+    
+    if (messageKeys.length > 0) {
+      const messageValues = await Promise.all(
+        messageKeys.map(key => redis.get<number>(key))
+      );
+      messageCount = messageValues.reduce<number>((sum, val) => (sum ?? 0) + (val ?? 0), 0);
+    }
+    
+    if (siteKeys.length > 0) {
+      const siteValues = await Promise.all(
+        siteKeys.map(key => redis.get<number>(key))
+      );
+      siteCount = siteValues.reduce<number>((sum, val) => (sum ?? 0) + (val ?? 0), 0);
+    }
+    
+    console.log('[Rate Limit] 現在の使用量:', { messageCount, siteCount, limits });
+    
+    return {
+      messages: Math.max(0, limits.messages - messageCount),
+      siteGenerations: Math.max(0, limits.sites - siteCount),
+    };
+  } catch (error) {
+    console.error('[Rate Limit] 残り制限数の取得エラー:', error);
+    // エラー時は最大値を返す（安全側に倒す）
+    return {
+      messages: limits.messages,
+      siteGenerations: limits.sites,
+    };
+  }
 }
 
 /**
@@ -175,11 +233,11 @@ export async function getRemainingLimits(
 export function getRateLimitErrorMessage(error: RateLimitResult['error'], tier: VisitorTier): string {
   switch (error) {
     case 'global':
-      return 'アクセスが集中しています。少し時間をおいてお試しください。';
+      return 'アクセスが集中しています。少し時間をおいてお試しください。（グローバル制限）';
     case 'ip_hourly':
-      return '短時間にリクエストが多すぎます。1時間後に再度お試しください。';
+      return '短時間にリクエストが多すぎます。1時間後に再度お試しください。（IP時間制限）';
     case 'ip_daily':
-      return '本日のリクエスト上限に達しました。明日お試しください。';
+      return '本日のリクエスト上限に達しました。明日お試しください。（IP日次制限）';
     case 'tier_message':
       switch (tier) {
         case 1:

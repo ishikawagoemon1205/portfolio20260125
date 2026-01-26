@@ -36,6 +36,13 @@ export async function GET(request: NextRequest) {
     // 残り制限を取得
     const limits = await getRemainingLimits(visitor.visitorId, visitor.tier);
     
+    console.log('[API Visitor] 訪問者情報:', {
+      visitorId: visitor.visitorId,
+      tier: visitor.tier,
+      limits,
+      DEV_SKIP: process.env.DEV_SKIP_RATE_LIMIT
+    });
+    
     // Tier情報
     const tierInfo = {
       current: visitor.tier,

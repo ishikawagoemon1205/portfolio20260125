@@ -7,6 +7,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import Link from 'next/link';
 
 export interface ChatMessageProps {
   id: string;
@@ -15,6 +16,52 @@ export interface ChatMessageProps {
   createdAt?: string;
   isStreaming?: boolean;
   avatarUrl?: string;
+}
+
+/**
+ * テキスト内のURLをリンク化する関数
+ */
+function linkifyText(text: string) {
+  // URLのパターン（http/https）
+  const urlPattern = /(https?:\/\/[^\s\)]+)/g;
+  const parts = text.split(urlPattern);
+  
+  return parts.map((part, index) => {
+    // URLの場合
+    if (part.match(urlPattern)) {
+      // 内部リンク（自サイトのURL）か外部リンクかを判定
+      const isInternalLink = part.includes(process.env.NEXT_PUBLIC_SITE_URL || 'localhost:3000');
+      
+      if (isInternalLink) {
+        // 内部リンクの場合、相対パスに変換
+        const url = new URL(part);
+        return (
+          <Link
+            key={index}
+            href={url.pathname}
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline break-all"
+          >
+            {part}
+          </Link>
+        );
+      } else {
+        // 外部リンクの場合
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+    }
+    // 通常のテキスト
+    return <span key={index}>{part}</span>;
+  });
 }
 
 export function ChatMessage({
@@ -59,12 +106,12 @@ export function ChatMessage({
               : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md'
           }`}
         >
-          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-            {content}
+          <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+            {linkifyText(content)}
             {isStreaming && (
               <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
             )}
-          </p>
+          </div>
         </div>
         
         {/* タイムスタンプ */}

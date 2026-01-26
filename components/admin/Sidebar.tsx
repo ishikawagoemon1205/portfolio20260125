@@ -4,8 +4,10 @@
 
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 const menuItems = [
   {
@@ -22,6 +24,11 @@ const menuItems = [
     label: '会話履歴',
     href: '/admin/conversations',
     icon: '💬',
+  },
+  {
+    label: '記事管理',
+    href: '/admin/articles',
+    icon: '📚',
   },
   {
     label: '訪問者',
@@ -67,6 +74,25 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (!confirm('ログアウトしますか？')) return;
+
+    try {
+      setLoggingOut(true);
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push('/admin/login');
+      router.refresh();
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+      alert('ログアウトに失敗しました');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
@@ -109,13 +135,14 @@ export function Sidebar() {
 
       {/* フッター */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>←</span>
-          <span>サイトに戻る</span>
-        </Link>
+          <span>🚪</span>
+          <span>{loggingOut ? 'ログアウト中...' : 'ログアウト'}</span>
+        </button>
       </div>
     </aside>
   );

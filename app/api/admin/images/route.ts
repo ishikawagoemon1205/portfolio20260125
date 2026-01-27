@@ -74,11 +74,38 @@ export async function POST(request: NextRequest) {
       .from('portfolio20260125')
       .getPublicUrl(filePath);
 
-    // 記事用の画像はURLのみ返す（profile_imagesテーブルには保存しない）
+    // profile_imagesテーブルに保存（永続化）
+    const { data: imageRecord, error: dbError } = await (supabase as any)
+      .from('profile_images')
+      .insert({
+        image_url: publicUrl,
+        storage_path: filePath,
+        alt_text: file.name.split('.')[0], // ファイル名をaltテキストとして使用
+        category: category,
+        is_active: category === 'profile' ? true : false, // プロフィール画像はデフォルトでアクティブ
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('DB保存エラー:', dbError);
+      // DBエラーでもStorageにはアップロード済みなのでURLは返す
+      return NextResponse.json({ 
+        id: null,
+        url: publicUrl,
+        storage_path: filePath,
+        file_name: file.name,
+        warning: 'データベースへの保存に失敗しました。テーブルが存在するか確認してください。'
+      });
+    }
+
     return NextResponse.json({ 
-      url: publicUrl,
+      id: imageRecord.id,
+      url: imageRecord.image_url,
+      alt: imageRecord.alt_text,
+      category: imageRecord.category,
       storage_path: filePath,
-      file_name: file.name 
+      created_at: imageRecord.created_at
     });
   } catch (error) {
     console.error('画像アップロードエラー:', error);

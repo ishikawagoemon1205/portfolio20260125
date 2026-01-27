@@ -48,7 +48,7 @@ export async function getRandomAvatar(): Promise<AvatarInfo | null> {
     random -= avatar.weight;
     if (random <= 0) {
       return {
-        url: avatar.url,
+        url: avatar.image_url,
         altText: avatar.alt_text || 'あっちゃん',
       };
     }
@@ -56,7 +56,7 @@ export async function getRandomAvatar(): Promise<AvatarInfo | null> {
 
   // フォールバック
   return {
-    url: avatars[0].url,
+    url: avatars[0].image_url,
     altText: avatars[0].alt_text || 'あっちゃん',
   };
 }

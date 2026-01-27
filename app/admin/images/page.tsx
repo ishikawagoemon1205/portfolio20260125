@@ -10,9 +10,11 @@ import Image from 'next/image';
 
 interface ProfileImage {
   id: string;
-  url: string;
-  alt: string;
+  image_url: string;
+  alt_text: string;
   category: string;
+  is_active?: boolean;
+  storage_path?: string;
   created_at: string;
 }
 
@@ -39,6 +41,7 @@ export default function ImagesPage() {
       const res = await fetch('/api/admin/images');
       if (res.ok) {
         const data = await res.json();
+        // DBから取得したデータはそのまま使用
         setImages(data || []);
       }
     } catch (error) {
@@ -77,12 +80,27 @@ export default function ImagesPage() {
         body: formData,
       });
 
+      const newImage = await res.json();
+      
       if (res.ok) {
-        const newImage = await res.json();
-        setImages([newImage, ...images]);
-        setMessage({ type: 'success', text: '画像をアップロードしました' });
+        // APIレスポンスをProfileImage形式に正規化
+        const normalizedImage: ProfileImage = {
+          id: newImage.id,
+          image_url: newImage.url || newImage.image_url,
+          alt_text: newImage.alt || newImage.alt_text || file.name,
+          category: newImage.category,
+          storage_path: newImage.storage_path,
+          created_at: newImage.created_at || new Date().toISOString(),
+        };
+        setImages([normalizedImage, ...images]);
+        
+        if (newImage.warning) {
+          setMessage({ type: 'error', text: newImage.warning });
+        } else {
+          setMessage({ type: 'success', text: '画像をアップロードしました' });
+        }
       } else {
-        throw new Error('アップロードに失敗しました');
+        throw new Error(newImage.error || 'アップロードに失敗しました');
       }
     } catch (error) {
       setMessage({ type: 'error', text: '画像のアップロードに失敗しました' });
@@ -195,14 +213,14 @@ export default function ImagesPage() {
               >
                 <div className="aspect-square relative">
                   <Image
-                    src={image.url}
-                    alt={image.alt}
+                    src={image.image_url}
+                    alt={image.alt_text || 'プロフィール画像'}
                     fill
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
-                      onClick={() => window.open(image.url, '_blank')}
+                      onClick={() => window.open(image.image_url, '_blank')}
                       className="px-3 py-1 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
                     >
                       開く

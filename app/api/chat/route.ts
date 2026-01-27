@@ -14,8 +14,9 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { getOrCreateVisitorId, getOrCreateVisitor, incrementMessageCount } from '@/lib/visitor';
 import { checkMessageRateLimit } from '@/lib/rate-limit';
 import { getClientIP, detectBot } from '@/lib/security';
-import { streamChatResponse, convertDBMessagesToChatFormat, type ChatMessage } from '@/lib/openai';
+import { streamChatResponse, convertDBMessagesToChatFormat, checkKnowledge, generateUnavailableResponse, type ChatMessage } from '@/lib/openai';
 import { recordUsage } from '@/lib/analytics';
+import { getRandomAvatar } from '@/lib/profile/get-avatar';
 import type { Message, Conversation } from '@/types/database.types';
 
 // Edge Runtimeを使わず、Node.jsランタイムで実行（Supabaseクライアントの互換性のため）
@@ -173,6 +174,41 @@ export async function POST(request: NextRequest) {
     
     console.log('[Chat API] OpenAIに送信するメッセージ数:', chatMessages.length);
     
+    // 🎯 2段階判定: 質問がプロフィール情報で回答可能かチェック
+    const conversationContext = chatMessages
+      .slice(-6) // 直近6メッセージを文脈として使用
+      .map(m => `${m.role}: ${m.content}`)
+      .join('\n');
+    
+    const knowledgeCheck = await checkKnowledge(message, conversationContext);
+    console.log('[Chat API] 知識判定結果:', {
+      canAnswer: knowledgeCheck.canAnswer,
+      confidence: knowledgeCheck.confidence,
+      reason: knowledgeCheck.reason,
+      shouldRecord: knowledgeCheck.shouldRecord
+    });
+    
+    // 未回答質問として記録が必要な場合
+    if (knowledgeCheck.shouldRecord) {
+      try {
+        await (supabase as any)
+          .from('unanswered_questions')
+          .upsert({
+            question: message,
+            conversation_id: conversationId,
+            asked_count: 1,
+            last_asked_at: new Date().toISOString(),
+          }, {
+            onConflict: 'question',
+            ignoreDuplicates: false,
+          });
+        console.log('[Chat API] 未回答質問を記録:', message.slice(0, 50));
+      } catch (recordError) {
+        // 記録失敗は無視（テーブルがない場合など）
+        console.warn('[Chat API] 未回答質問の記録に失敗:', recordError);
+      }
+    }
+    
     // ストリーミングレスポンスを生成
     const encoder = new TextEncoder();
     let fullResponse = '';
@@ -180,6 +216,54 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // 回答不可の場合は定型文を返す
+          if (!knowledgeCheck.canAnswer) {
+            const unavailableMsg = generateUnavailableResponse(knowledgeCheck, 'casual');
+            fullResponse = unavailableMsg;
+            
+            // チャンクとして送信
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'conversation_id', conversationId })}\n\n`)
+            );
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: unavailableMsg })}\n\n`)
+            );
+            
+            // AIレスポンスを保存
+            const { data: aiMessage } = await (supabase as any)
+              .from('messages')
+              .insert({
+                conversation_id: conversationId,
+                role: 'assistant',
+                content: fullResponse,
+                tokens_used: 0,
+              })
+              .select()
+              .single();
+            
+            // メッセージ数を更新
+            await incrementMessageCount(visitor.visitorId);
+            
+            // アバター画像を取得
+            const avatarInfo = await getRandomAvatar();
+            
+            // 完了イベント
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ 
+                type: 'done', 
+                usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                messageId: aiMessage?.id,
+                remainingMessages: remainingMessagesAfterCheck,
+                avatarUrl: avatarInfo?.url || null,
+                isUnavailable: true, // 未回答フラグ
+              })}\n\n`)
+            );
+            
+            controller.close();
+            return;
+          }
+          
+          // 通常の回答生成
           const generator = streamChatResponse({
             conversationId,
             messages: chatMessages,
@@ -252,13 +336,17 @@ export async function POST(request: NextRequest) {
           // メッセージ数を更新
           await incrementMessageCount(visitor.visitorId);
           
+          // アバター画像を取得
+          const avatarInfo = await getRandomAvatar();
+          
           // 完了イベント（残りメッセージ数はチェック時の値を使用）
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ 
               type: 'done', 
               usage: finalResult.usage,
               messageId: aiMessage?.id,
-              remainingMessages: remainingMessagesAfterCheck
+              remainingMessages: remainingMessagesAfterCheck,
+              avatarUrl: avatarInfo?.url || null,
             })}\n\n`)
           );
           

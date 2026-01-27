@@ -18,6 +18,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   createdAt?: string;
+  avatarUrl?: string; // AIアバター画像URL
 }
 
 // 記事情報の型
@@ -371,6 +372,7 @@ export function ChatContainer({
                   role: 'assistant',
                   content: fullContent,
                   createdAt: new Date().toISOString(),
+                  avatarUrl: data.avatarUrl || undefined, // アバター画像URL
                 };
                 setMessages(prev => [...prev, aiMessage]);
                 setStreamingContent('');
@@ -755,6 +757,7 @@ export function ChatContainer({
               role={msg.role}
               content={msg.content}
               createdAt={msg.createdAt}
+              avatarUrl={msg.avatarUrl}
             />
           ))}
         </AnimatePresence>

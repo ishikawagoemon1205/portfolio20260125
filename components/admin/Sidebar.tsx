@@ -56,6 +56,11 @@ const menuItems = [
     icon: '⭐',
   },
   {
+    label: '未回答の質問',
+    href: '/admin/unanswered-questions',
+    icon: '❓',
+  },
+  {
     label: 'キャラクター',
     href: '/admin/settings/character',
     icon: '🎭',

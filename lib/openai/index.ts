@@ -32,6 +32,13 @@ export {
   type ChatResponse,
 } from './chat';
 
+// 知識判定
+export {
+  checkKnowledge,
+  generateUnavailableResponse,
+  type KnowledgeCheckResult,
+} from './knowledge-check';
+
 // サイト生成
 export {
   generatePersonalizedSite,

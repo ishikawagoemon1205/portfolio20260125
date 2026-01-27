@@ -333,7 +333,8 @@ export interface Database {
       profile_images: {
         Row: {
           id: string;
-          url: string;
+          image_url: string;
+          storage_path: string | null;
           alt_text: string | null;
           category: string | null;
           weight: number;
@@ -342,7 +343,8 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          url: string;
+          image_url: string;
+          storage_path?: string | null;
           alt_text?: string | null;
           category?: string | null;
           weight?: number;
@@ -351,7 +353,8 @@ export interface Database {
         };
         Update: {
           id?: string;
-          url?: string;
+          image_url?: string;
+          storage_path?: string | null;
           alt_text?: string | null;
           category?: string | null;
           weight?: number;
@@ -569,6 +572,56 @@ export interface Database {
           viewed_at?: string;
         };
       };
+      unanswered_questions: {
+        Row: {
+          id: string;
+          question: string;
+          conversation_id: string | null;
+          asked_count: number;
+          first_asked_at: string;
+          last_asked_at: string;
+          status: 'pending' | 'answered' | 'ignored';
+          answer: string | null;
+          answered_at: string | null;
+          answered_by: string | null;
+          profile_category: string | null;
+          profile_item_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          question: string;
+          conversation_id?: string | null;
+          asked_count?: number;
+          first_asked_at?: string;
+          last_asked_at?: string;
+          status?: 'pending' | 'answered' | 'ignored';
+          answer?: string | null;
+          answered_at?: string | null;
+          answered_by?: string | null;
+          profile_category?: string | null;
+          profile_item_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          question?: string;
+          conversation_id?: string | null;
+          asked_count?: number;
+          first_asked_at?: string;
+          last_asked_at?: string;
+          status?: 'pending' | 'answered' | 'ignored';
+          answer?: string | null;
+          answered_at?: string | null;
+          answered_by?: string | null;
+          profile_category?: string | null;
+          profile_item_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -630,6 +683,10 @@ export type ArticleUpdate = Database['public']['Tables']['articles']['Update'];
 export type ArticleView = Database['public']['Tables']['article_views']['Row'];
 export type ArticleViewInsert = Database['public']['Tables']['article_views']['Insert'];
 export type ArticleViewUpdate = Database['public']['Tables']['article_views']['Update'];
+
+export type UnansweredQuestion = Database['public']['Tables']['unanswered_questions']['Row'];
+export type UnansweredQuestionInsert = Database['public']['Tables']['unanswered_questions']['Insert'];
+export type UnansweredQuestionUpdate = Database['public']['Tables']['unanswered_questions']['Update'];
 
 // Inquiry status type
 export type InquiryStatus = 'new' | 'contacted' | 'in_progress' | 'completed' | 'cancelled';

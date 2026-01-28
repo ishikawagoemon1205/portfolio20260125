@@ -100,7 +100,7 @@ export function ChatMessage({
       {/* メッセージ本文 */}
       <div className={`max-w-[75%] ${isUser ? 'text-right' : 'text-left'}`}>
         <div
-          className={`inline-block px-4 py-3 rounded-2xl ${
+          className={`inline-block px-4 py-3 rounded-2xl text-left ${
             isUser
               ? 'bg-blue-500 text-white rounded-br-md'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md'

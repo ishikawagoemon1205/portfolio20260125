@@ -20,8 +20,10 @@ interface StatsChartModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  metric: 'visitors' | 'conversations' | 'inquiries' | 'sites';
+  metric: 'visitors' | 'conversations' | 'inquiries' | 'sites' | 'messages' | 'tokens' | 'cost';
   icon: string;
+  valueFormatter?: (value: number) => string;
+  unit?: string;
 }
 
 const timeRangeLabels: Record<TimeRange, string> = {
@@ -31,12 +33,26 @@ const timeRangeLabels: Record<TimeRange, string> = {
   '1y': '過去1年間',
 };
 
-export function StatsChartModal({ isOpen, onClose, title, metric, icon }: StatsChartModalProps) {
+export function StatsChartModal({ 
+  isOpen, 
+  onClose, 
+  title, 
+  metric, 
+  icon,
+  valueFormatter,
+  unit = '件'
+}: StatsChartModalProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [data, setData] = useState<TimeSeriesData[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 値のフォーマット
+  const formatValue = (value: number) => {
+    if (valueFormatter) return valueFormatter(value);
+    return value.toLocaleString();
+  };
 
   // データ取得
   useEffect(() => {
@@ -110,7 +126,7 @@ export function StatsChartModal({ isOpen, onClose, title, metric, icon }: StatsC
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  期間内合計: <span className="font-semibold text-gray-900 dark:text-white">{total}</span>
+                  期間内合計: <span className="font-semibold text-gray-900 dark:text-white">{formatValue(total)}</span>
                 </p>
               </div>
             </div>
@@ -157,10 +173,10 @@ export function StatsChartModal({ isOpen, onClose, title, metric, icon }: StatsC
                 <div className="flex">
                   {/* Y軸ラベル */}
                   <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-2 w-8 text-right" style={{ height: '256px' }}>
-                    <span>{maxValue}</span>
-                    <span>{Math.ceil(maxValue * 0.75)}</span>
-                    <span>{Math.ceil(maxValue * 0.5)}</span>
-                    <span>{Math.ceil(maxValue * 0.25)}</span>
+                    <span>{formatValue(maxValue)}</span>
+                    <span>{formatValue(Math.ceil(maxValue * 0.75))}</span>
+                    <span>{formatValue(Math.ceil(maxValue * 0.5))}</span>
+                    <span>{formatValue(Math.ceil(maxValue * 0.25))}</span>
                     <span>0</span>
                   </div>
                   
@@ -183,7 +199,7 @@ export function StatsChartModal({ isOpen, onClose, title, metric, icon }: StatsC
                               transition={{ duration: 0.3, delay: index * 0.02 + 0.5 }}
                               className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1"
                             >
-                              {item.value}
+                              {formatValue(item.value)}
                             </motion.div>
                           )}
                           
@@ -202,7 +218,7 @@ export function StatsChartModal({ isOpen, onClose, title, metric, icon }: StatsC
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 pointer-events-none">
                               <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg">
                                 <div className="font-medium">{formatDate(item.date)}</div>
-                                <div className="text-purple-300">{item.value}件</div>
+                                <div className="text-purple-300">{formatValue(item.value)}{unit}</div>
                               </div>
                             </div>
                           </motion.div>
@@ -233,19 +249,19 @@ export function StatsChartModal({ isOpen, onClose, title, metric, icon }: StatsC
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">平均/日</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {data.length > 0 ? (total / data.length).toFixed(1) : 0}
+                {data.length > 0 ? formatValue(Math.round(total / data.length)) : 0}
               </p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">最大/日</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {maxValue}
+                {formatValue(maxValue)}
               </p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">期間合計</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {total}
+                {formatValue(total)}
               </p>
             </div>
           </div>

@@ -67,13 +67,22 @@ async function AnalyticsContent() {
     .order('created_at', { ascending: false })
     .limit(5);
 
-  // API使用量を取得（generated_sitesのtokens_usedを合計）
-  const { data: tokenData } = await (supabase as any)
-    .from('generated_sites')
-    .select('tokens_used');
+  // API使用量を取得（messagesとgenerated_sitesのtokens_usedとcost_usdを合計）
+  const [{ data: messageTokenData }, { data: siteTokenData }] = await Promise.all([
+    (supabase as any).from('messages').select('tokens_used, cost_usd'),
+    (supabase as any).from('generated_sites').select('tokens_used, cost_usd'),
+  ]);
 
-  const totalTokens = tokenData?.reduce((sum: number, item: { tokens_used: number | null }) => 
+  const messageTokens = messageTokenData?.reduce((sum: number, item: { tokens_used: number | null }) => 
     sum + (item.tokens_used || 0), 0) || 0;
+  const messageCost = messageTokenData?.reduce((sum: number, item: { cost_usd: number | null }) => 
+    sum + (item.cost_usd || 0), 0) || 0;
+  const siteTokens = siteTokenData?.reduce((sum: number, item: { tokens_used: number | null }) => 
+    sum + (item.tokens_used || 0), 0) || 0;
+  const siteCost = siteTokenData?.reduce((sum: number, item: { cost_usd: number | null }) => 
+    sum + (item.cost_usd || 0), 0) || 0;
+  const totalTokens = messageTokens + siteTokens;
+  const totalCost = messageCost + siteCost;
 
   // 最近のアクティビティを構築
   const recentActivity: ActivityItem[] = [
@@ -100,7 +109,8 @@ async function AnalyticsContent() {
     dailyStats: [], // TODO: 日別統計を実装
     apiUsage: {
       totalTokens,
-      estimatedCost: totalTokens * 0.00001, // GPT-4o-miniの概算コスト
+      // 実測値: 126,443トークン = $0.07 → 1トークンあたり約$0.00000055
+      estimatedCost: totalCost > 0 ? totalCost : totalTokens * 0.00000055,
     },
   };
 

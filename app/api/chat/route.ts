@@ -154,23 +154,30 @@ export async function POST(request: NextRequest) {
       return errorResponse('メッセージの保存に失敗しました', 500);
     }
     
-    // 過去のメッセージを取得
+    // 過去のメッセージを取得（直近20件に制限してトークン消費を抑制）
     const { data: pastMessages, error: pastMessagesError } = await (supabase as any)
       .from('messages')
       .select('role, content, created_at')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-      .limit(50);
+      .order('created_at', { ascending: false }) // 新しい順で取得
+      .limit(20); // 直近20件に制限
     
-    // デバッグログ
-    console.log('[Chat API] 過去メッセージ取得:', { 
-      conversationId, 
-      messageCount: pastMessages?.length || 0,
-      error: pastMessagesError,
-      messages: pastMessages?.map((m: any) => ({ role: m.role, contentPreview: m.content?.slice(0, 30) }))
-    });
+    // 時系列順に並び替え
+    const orderedMessages = pastMessages?.reverse() || [];
     
-    const chatMessages: ChatMessage[] = convertDBMessagesToChatFormat(pastMessages || []);
+    // デバッグログ（開発環境のみ詳細表示）
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Chat API] 過去メッセージ取得:', { 
+        conversationId, 
+        messageCount: orderedMessages.length,
+        error: pastMessagesError,
+        messages: orderedMessages.map((m: any) => ({ role: m.role, contentPreview: m.content?.slice(0, 30) }))
+      });
+    } else {
+      console.log('[Chat API] 過去メッセージ:', orderedMessages.length, '件');
+    }
+    
+    const chatMessages: ChatMessage[] = convertDBMessagesToChatFormat(orderedMessages);
     
     console.log('[Chat API] OpenAIに送信するメッセージ数:', chatMessages.length);
     

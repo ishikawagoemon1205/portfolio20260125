@@ -31,6 +31,7 @@ export default function UnansweredQuestionsPage() {
   
   // 回答入力用のモーダル状態
   const [selectedQuestion, setSelectedQuestion] = useState<UnansweredQuestion | null>(null);
+  const [editedQuestion, setEditedQuestion] = useState(''); // 編集された質問
   const [answerText, setAnswerText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -62,6 +63,11 @@ export default function UnansweredQuestionsPage() {
       return;
     }
 
+    if (!editedQuestion.trim()) {
+      setMessage({ type: 'error', text: '質問を入力してください' });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/admin/unanswered-questions', {
@@ -69,6 +75,7 @@ export default function UnansweredQuestionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionId: selectedQuestion.id,
+          question: editedQuestion.trim(), // 編集された質問を送信
           answer: answerText.trim(),
           profileCategory: selectedCategory || null,
         }),
@@ -77,6 +84,7 @@ export default function UnansweredQuestionsPage() {
       if (res.ok) {
         setMessage({ type: 'success', text: '回答を登録しました！' });
         setSelectedQuestion(null);
+        setEditedQuestion('');
         setAnswerText('');
         setSelectedCategory('');
         await loadQuestions();
@@ -253,6 +261,7 @@ export default function UnansweredQuestionsPage() {
                       <button
                         onClick={() => {
                           setSelectedQuestion(q);
+                          setEditedQuestion(q.question); // 元の質問をセット
                           setAnswerText('');
                           setSelectedCategory('');
                         }}
@@ -295,11 +304,21 @@ export default function UnansweredQuestionsPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  質問
+                  質問 <span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-500 ml-2">（汎用的な質問に編集できます）</span>
                 </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  「{selectedQuestion.question}」
-                </p>
+                <textarea
+                  value={editedQuestion}
+                  onChange={(e) => setEditedQuestion(e.target.value)}
+                  placeholder="質問内容を編集..."
+                  rows={2}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                {editedQuestion !== selectedQuestion.question && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    ✏️ 質問を編集しました（元: 「{selectedQuestion.question}」）
+                  </p>
+                )}
                 <p className="text-sm text-gray-500 mt-1">
                   {selectedQuestion.asked_count}回質問されました
                 </p>
@@ -341,6 +360,7 @@ export default function UnansweredQuestionsPage() {
               <button
                 onClick={() => {
                   setSelectedQuestion(null);
+                  setEditedQuestion('');
                   setAnswerText('');
                   setSelectedCategory('');
                 }}
@@ -350,7 +370,7 @@ export default function UnansweredQuestionsPage() {
               </button>
               <button
                 onClick={handleAnswerSubmit}
-                disabled={submitting || !answerText.trim()}
+                disabled={submitting || !answerText.trim() || !editedQuestion.trim()}
                 className="px-6 py-2 text-sm font-medium text-white bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? '登録中...' : '回答を登録'}

@@ -1,10 +1,16 @@
 /**
  * 分析ダッシュボードコンポーネント
+ * 
+ * クリックでグラフ表示が可能なインタラクティブな統計カード
  */
 
 'use client';
 
+import { useState } from 'react';
 import { StatsCard } from '@/components/admin';
+import { StatsChartModal } from '@/components/admin/StatsChartModal';
+
+type MetricType = 'visitors' | 'conversations' | 'inquiries' | 'sites' | 'messages' | 'tokens' | 'cost';
 
 interface AnalyticsData {
   totalVisitors: number;
@@ -35,7 +41,95 @@ interface APIUsage {
   estimatedCost: number;
 }
 
+interface StatConfig {
+  type: MetricType;
+  title: string;
+  icon: string;
+  getValue: (data: AnalyticsData) => string;
+  getDescription: (data: AnalyticsData) => string;
+  unit?: string;
+  valueFormatter?: (value: number) => string;
+}
+
+const statConfigs: StatConfig[] = [
+  {
+    type: 'visitors',
+    title: '総訪問者数',
+    icon: '👥',
+    getValue: (data) => data.totalVisitors.toLocaleString(),
+    getDescription: () => 'これまでの総訪問者数',
+    unit: '人',
+  },
+  {
+    type: 'conversations',
+    title: '総会話数',
+    icon: '💬',
+    getValue: (data) => data.totalConversations.toLocaleString(),
+    getDescription: (data) => `メッセージ数: ${data.totalMessages.toLocaleString()}`,
+    unit: '件',
+  },
+  {
+    type: 'inquiries',
+    title: '問い合わせ数',
+    icon: '📧',
+    getValue: (data) => data.totalInquiries.toLocaleString(),
+    getDescription: () => '受信した問い合わせ',
+    unit: '件',
+  },
+  {
+    type: 'sites',
+    title: '生成サイト数',
+    icon: '🌐',
+    getValue: (data) => data.totalSites.toLocaleString(),
+    getDescription: () => 'AIが生成したサイト',
+    unit: '件',
+  },
+  {
+    type: 'messages',
+    title: 'メッセージ数',
+    icon: '✉️',
+    getValue: (data) => data.totalMessages.toLocaleString(),
+    getDescription: () => 'チャットメッセージ総数',
+    unit: '件',
+  },
+  {
+    type: 'tokens',
+    title: 'API使用量',
+    icon: '🔧',
+    getValue: (data) => data.apiUsage.totalTokens.toLocaleString(),
+    getDescription: () => '使用したトークン数',
+    unit: 'トークン',
+    valueFormatter: (value: number) => value.toLocaleString(),
+  },
+  {
+    type: 'cost',
+    title: '推定コスト',
+    icon: '💰',
+    getValue: (data) => `$${data.apiUsage.estimatedCost.toFixed(3)}`,
+    getDescription: () => 'OpenAI API推定費用',
+    unit: '',
+    valueFormatter: (value: number) => `$${value.toFixed(3)}`,
+  },
+];
+
 export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
+  const [selectedMetric, setSelectedMetric] = useState<MetricType | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleCardClick = (metric: MetricType) => {
+    setSelectedMetric(metric);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedMetric(null);
+  };
+
+  const selectedConfig = selectedMetric
+    ? statConfigs.find((c) => c.type === selectedMetric)
+    : null;
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'conversation':
@@ -53,43 +147,28 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
     <div className="space-y-8">
       {/* 統計カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatsCard
-          title="総訪問者数"
-          value={data.totalVisitors.toLocaleString()}
-          icon="👥"
-          description="これまでの総訪問者数"
-        />
-        <StatsCard
-          title="総会話数"
-          value={data.totalConversations.toLocaleString()}
-          icon="💬"
-          description={`メッセージ数: ${data.totalMessages.toLocaleString()}`}
-        />
-        <StatsCard
-          title="問い合わせ数"
-          value={data.totalInquiries.toLocaleString()}
-          icon="📧"
-          description="受信した問い合わせ"
-        />
-        <StatsCard
-          title="生成サイト数"
-          value={data.totalSites.toLocaleString()}
-          icon="🌐"
-          description="AIが生成したサイト"
-        />
-        <StatsCard
-          title="API使用量"
-          value={data.apiUsage.totalTokens.toLocaleString()}
-          icon="🔧"
-          description="使用したトークン数"
-        />
-        <StatsCard
-          title="推定コスト"
-          value={`$${data.apiUsage.estimatedCost.toFixed(2)}`}
-          icon="💰"
-          description="OpenAI API推定費用"
-        />
+        {statConfigs.map((config) => (
+          <StatsCard
+            key={config.type}
+            title={config.title}
+            value={config.getValue(data)}
+            icon={config.icon}
+            description={config.getDescription(data)}
+            onClick={() => handleCardClick(config.type)}
+          />
+        ))}
       </div>
+
+      {/* グラフモーダル */}
+      <StatsChartModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={selectedConfig?.title || ''}
+        metric={selectedMetric || 'visitors'}
+        icon={selectedConfig?.icon || '�'}
+        unit={selectedConfig?.unit}
+        valueFormatter={selectedConfig?.valueFormatter}
+      />
 
       {/* 最近のアクティビティ */}
       <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">

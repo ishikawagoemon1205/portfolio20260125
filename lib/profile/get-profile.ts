@@ -125,6 +125,7 @@ export function selectProfileItemByRecency(items: ProfileItem[]): ProfileItem | 
 
 /**
  * プロンプト用にプロフィールを自然言語形式に変換
+ * カテゴリを動的に処理し、全てのカテゴリを出力
  */
 export function formatProfileForPrompt(items: ProfileItem[]): string {
   const categories: Record<string, ProfileItem[]> = {};
@@ -136,45 +137,36 @@ export function formatProfileForPrompt(items: ProfileItem[]): string {
     categories[item.category].push(item);
   }
 
+  // カテゴリ名の日本語マッピング
+  const categoryLabels: Record<string, string> = {
+    'basic': '基本情報',
+    'skills': 'スキル',
+    'hobbies': '趣味・個性',
+    'recent_updates': '最近の出来事',
+    'achievements': '実績',
+    'personality': '性格・価値観',
+    'food': '食べ物・飲み物',
+    '食べ物・飲み物': '食べ物・飲み物',
+    '趣味': '趣味',
+    '仕事': '仕事',
+    '学び': '学び',
+  };
+
   const sections: string[] = [];
 
-  // 基本情報
-  if (categories['basic']) {
-    const basicInfo = categories['basic'].map(i => `${i.key}: ${i.value}`).join('、');
-    sections.push(`【基本情報】${basicInfo}`);
+  // 全カテゴリを動的に処理
+  for (const [categoryKey, categoryItems] of Object.entries(categories)) {
+    const label = categoryLabels[categoryKey] || categoryKey;
+    // keyが質問形式の場合、valueに実際の情報が含まれる
+    // 知識判定では、どの話題について情報があるかを明示的にする
+    const content = categoryItems.map(i => {
+      // keyを話題として抽出、valueを内容として表示
+      return `- ${i.key}\n  内容: ${i.value}`;
+    }).join('\n');
+    sections.push(`【${label}】\n${content}`);
   }
 
-  // スキル
-  if (categories['skills']) {
-    const skills = categories['skills'].map(i => `${i.key}: ${i.value}`).join('、');
-    sections.push(`【スキル】${skills}`);
-  }
-
-  // 趣味
-  if (categories['hobbies']) {
-    const hobbies = categories['hobbies'].map(i => `${i.key}: ${i.value}`).join('、');
-    sections.push(`【趣味・個性】${hobbies}`);
-  }
-
-  // 最近の出来事（重要度高い）
-  if (categories['recent_updates']) {
-    const updates = categories['recent_updates'].map(i => `${i.key}: ${i.value}`).join('、');
-    sections.push(`【最近の出来事】${updates}`);
-  }
-
-  // 実績
-  if (categories['achievements']) {
-    const achievements = categories['achievements'].map(i => `${i.key}: ${i.value}`).join('、');
-    sections.push(`【実績】${achievements}`);
-  }
-
-  // 性格
-  if (categories['personality']) {
-    const personality = categories['personality'].map(i => `${i.key}: ${i.value}`).join('、');
-    sections.push(`【性格・価値観】${personality}`);
-  }
-
-  return sections.join('\n');
+  return sections.join('\n\n');
 }
 
 /**

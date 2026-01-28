@@ -55,6 +55,7 @@ export function ChatContainer({
   const [error, setError] = useState<string | null>(null);
   const [remainingMessages, setRemainingMessages] = useState<number | undefined>();
   const [showInquiryModal, setShowInquiryModal] = useState(false);
+  const [dynamicSuggestQuestion, setDynamicSuggestQuestion] = useState<string | null>(null);
   
   // 記事モード関連の状態
   const [isArticleMode, setIsArticleMode] = useState(false);
@@ -115,6 +116,24 @@ export function ChatContainer({
       }
     }
     fetchVisitorInfo();
+  }, []);
+  
+  // 動的サジェスト質問を取得
+  useEffect(() => {
+    async function fetchSuggestQuestion() {
+      try {
+        const res = await fetch('/api/chat/suggest-question');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.question) {
+            setDynamicSuggestQuestion(data.question);
+          }
+        }
+      } catch (e) {
+        console.error('サジェスト質問取得エラー:', e);
+      }
+    }
+    fetchSuggestQuestion();
   }, []);
   
   // 記事情報が変わったときに記事モードに切り替え（履歴ロードより優先）
@@ -244,9 +263,53 @@ export function ChatContainer({
   const [generatedSiteHtml, setGeneratedSiteHtml] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
+  // 要件ヒアリングが十分に行われているかを判定
+  const hasEnoughRequirementInfo = useCallback(() => {
+    if (messages.length < 6) return false; // 最低3往復以上の会話が必要
+    
+    // ユーザーメッセージとAIメッセージの数をカウント
+    const userMessages = messages.filter(m => m.role === 'user');
+    const assistantMessages = messages.filter(m => m.role === 'assistant');
+    
+    // ユーザーが最低3回以上回答していることを確認
+    if (userMessages.length < 3) return false;
+    
+    // AIが質問形式のメッセージを2回以上送っているか確認
+    const questionCount = assistantMessages.filter(m => 
+      m.content.includes('？') || m.content.includes('?') || 
+      m.content.includes('ですか') || m.content.includes('ますか')
+    ).length;
+    
+    if (questionCount < 2) return false;
+    
+    // 要件に関連するキーワードが含まれているか確認
+    const allUserContent = userMessages.map(m => m.content).join(' ');
+    const requirementKeywords = [
+      'サイト', 'ページ', 'Webサイト', 'ホームページ', 'ウェブサイト',
+      '目的', '用途', '機能', 'デザイン', '雰囲気',
+      'ターゲット', 'イメージ', 'コンセプト', '色'
+    ];
+    
+    const hasKeywords = requirementKeywords.some(keyword => allUserContent.includes(keyword));
+    
+    return hasKeywords && userMessages.length >= 3;
+  }, [messages]);
+  
   const handleGenerateSite = async () => {
     if (!conversationId || messages.length === 0) {
       setError('会話履歴からサイトを生成します。まずはチャットでご要望をお聞かせください。');
+      return;
+    }
+    
+    // 要件ヒアリングチェック
+    if (!hasEnoughRequirementInfo()) {
+      const warningMessage: Message = {
+        id: `warning-${Date.now()}`,
+        role: 'assistant',
+        content: `申し訳ございません。サイト生成には、もう少し詳しいご要望をお伺いする必要があります。\n\n以下のような情報を教えていただけますか？\n• サイトの目的や用途\n• ターゲットとなる方\n• デザインの雰囲気やイメージ\n• 必要な機能やページ構成\n\nこれらの情報をもとに、より良いサイトを作成いたします！`,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, warningMessage]);
       return;
     }
     
@@ -428,11 +491,14 @@ export function ChatContainer({
               {messages.length > 2 && conversationId && (
                 <button
                   onClick={handleGenerateSite}
-                  disabled={isGeneratingSite}
-                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 
+                  disabled={isGeneratingSite || !hasEnoughRequirementInfo()}
+                  className={`px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 
                     text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity
-                    flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="会話内容からサイトを生成"
+                    flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed
+                    ${!hasEnoughRequirementInfo() ? 'opacity-50' : ''}`}
+                  title={hasEnoughRequirementInfo() 
+                    ? "会話内容からサイトを生成" 
+                    : "サイト生成には、もう少し詳しいご要望をお伺いする必要があります"}
                 >
                   {isGeneratingSite ? (
                     <>
@@ -446,6 +512,9 @@ export function ChatContainer({
                           d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
                       サイト生成
+                      {!hasEnoughRequirementInfo() && (
+                        <span className="text-xs opacity-75">（要件不足）</span>
+                      )}
                     </>
                   )}
                 </button>
@@ -486,11 +555,14 @@ export function ChatContainer({
               {messages.length > 2 && conversationId && (
                 <button
                   onClick={handleGenerateSite}
-                  disabled={isGeneratingSite}
-                  className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 
+                  disabled={isGeneratingSite || !hasEnoughRequirementInfo()}
+                  className={`p-2 bg-gradient-to-r from-blue-500 to-cyan-500 
                     text-white rounded-lg hover:opacity-90 transition-opacity
-                    disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="サイト生成"
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    ${!hasEnoughRequirementInfo() ? 'opacity-50' : ''}`}
+                  title={hasEnoughRequirementInfo() 
+                    ? "サイト生成" 
+                    : "要件ヒアリングが必要です"}
                 >
                   {isGeneratingSite ? (
                     <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
@@ -549,14 +621,19 @@ export function ChatContainer({
                   handleGenerateSite();
                   setShowMobileMenu(false);
                 }}
-                disabled={isGeneratingSite}
-                className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50 rounded-t-lg"
+                disabled={isGeneratingSite || !hasEnoughRequirementInfo()}
+                className={`w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50 rounded-t-lg
+                  ${!hasEnoughRequirementInfo() ? 'opacity-50' : ''}`}
+                title={!hasEnoughRequirementInfo() ? '要件ヒアリングが必要です' : ''}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                     d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
                 {isGeneratingSite ? '生成中...' : 'サイト生成'}
+                {!hasEnoughRequirementInfo() && (
+                  <span className="text-xs opacity-75">（要件不足）</span>
+                )}
               </button>
             )}
             {messages.length > 0 && (
@@ -720,12 +797,9 @@ export function ChatContainer({
             {/* クイックアクション */}
             <div className="flex flex-wrap justify-center gap-2">
               {[
-                '👤 あっちゃんってどんな人？',
-                '🚀 どんな開発ができる？',
-                '🎮 最近の趣味は？',
-                '📚 おすすめの記事はありますか？',
-                '💼 仕事を依頼したい',
-                '📋 見積もりをお願い',
+                'あっちゃんってどんな人？',
+                'おすすめの記事は？',
+                ...(dynamicSuggestQuestion ? [dynamicSuggestQuestion] : []),
               ].map((text) => (
                 <button
                   key={text}

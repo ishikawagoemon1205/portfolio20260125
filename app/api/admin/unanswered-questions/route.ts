@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { questionId, answer, profileCategory } = body;
+    const { questionId, question: editedQuestion, answer, profileCategory } = body;
     
     if (!questionId || !answer) {
       return NextResponse.json({ error: '質問IDと回答が必要です' }, { status: 400 });
@@ -89,10 +89,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '質問が見つかりません' }, { status: 404 });
     }
     
-    // 回答を登録
+    // 使用する質問（編集されていれば編集版を使用）
+    const finalQuestion = editedQuestion?.trim() || question.question;
+    
+    // 回答を登録（質問も更新可能）
     const { data: updatedQuestion, error: updateError } = await (supabase as any)
       .from('unanswered_questions')
       .update({
+        question: finalQuestion, // 編集された質問を保存
         status: 'answered',
         answer: answer,
         answered_at: new Date().toISOString(),
@@ -110,18 +114,24 @@ export async function POST(request: NextRequest) {
     // 動的プロフィールに追加（必須）
     if (profileCategory) {
       try {
+        // 質問文をそのままキーとして使用（プロフィール管理画面で編集可能）
+        const profileKey = finalQuestion;
+        
+        console.log('[未回答質問] プロフィールに追加開始:', {
+          category: profileCategory,
+          key: profileKey,
+          question: finalQuestion,
+        });
+
         const { data: profileItem, error: profileError } = await (supabase as any)
           .from('profile_data')
           .insert({
             category: profileCategory,
-            key: `faq_${questionId.slice(0, 8)}`,
-            value: {
-              question: question.question,
-              answer: answer,
-              source: 'unanswered_questions',
-            },
-            priority: 50, // 中程度の優先度
-            is_public: true,
+            key: profileKey, // 質問文をそのまま使用
+            value: answer, // 回答テキストをそのまま保存
+            display_order: 0,
+            weight: 1.0,
+            is_active: true,
           })
           .select()
           .single();
@@ -133,7 +143,7 @@ export async function POST(request: NextRequest) {
             .update({ profile_item_id: profileItem.id })
             .eq('id', questionId);
           
-          console.log('[未回答質問] 動的プロフィールに追加:', {
+          console.log('[未回答質問] 動的プロフィールに追加成功:', {
             questionId,
             profileItemId: profileItem.id,
             category: profileCategory,

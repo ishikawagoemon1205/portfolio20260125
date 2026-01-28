@@ -1,30 +1,79 @@
 /**
  * プロフィールデータ管理API
  * 
- * 動的プロフィール情報（6カテゴリ）のCRUD操作
- * 優先度ロジックに基づいてチャットで使用される
+ * 動的プロフィール情報のCRUD操作
+ * ページネーション対応、カテゴリでフィルタリング可能
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
 /**
- * プロフィールデータ一覧を取得
+ * プロフィールデータ一覧を取得（ページネーション対応）
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const category = searchParams.get('category') || '';
+    const search = searchParams.get('search') || '';
+    
+    const offset = (page - 1) * limit;
+    
     const supabase = await createAdminClient();
 
-    const { data, error } = await (supabase as any)
+    // 総件数を取得
+    let countQuery = (supabase as any)
+      .from('profile_data')
+      .select('*', { count: 'exact', head: true });
+    
+    if (category) {
+      countQuery = countQuery.eq('category', category);
+    }
+    if (search) {
+      countQuery = countQuery.or(`key.ilike.%${search}%,value.ilike.%${search}%`);
+    }
+    
+    const { count } = await countQuery;
+    
+    // データを取得
+    let dataQuery = (supabase as any)
       .from('profile_data')
       .select('*')
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    
+    if (category) {
+      dataQuery = dataQuery.eq('category', category);
+    }
+    if (search) {
+      dataQuery = dataQuery.or(`key.ilike.%${search}%,value.ilike.%${search}%`);
+    }
+    
+    const { data, error } = await dataQuery;
 
     if (error) {
       throw error;
     }
 
-    return NextResponse.json(data || []);
+    // カテゴリ一覧を取得
+    const { data: allData } = await (supabase as any)
+      .from('profile_data')
+      .select('category');
+    
+    const uniqueCategories = [...new Set((allData || []).map((item: { category: string }) => item.category))];
+
+    return NextResponse.json({
+      items: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+      categories: uniqueCategories,
+    });
   } catch (error) {
     console.error('プロフィールデータ取得エラー:', error);
     return NextResponse.json(
@@ -48,7 +97,8 @@ export async function POST(request: NextRequest) {
         category: item.category,
         key: item.key,
         value: item.value,
-        priority: item.priority || 1,
+        display_order: item.display_order || 0,
+        weight: item.weight || 1.0,
         is_active: item.is_active !== false,
       })
       .select()
@@ -82,7 +132,8 @@ export async function PUT(request: NextRequest) {
         category: item.category,
         key: item.key,
         value: item.value,
-        priority: item.priority,
+        display_order: item.display_order,
+        weight: item.weight,
         is_active: item.is_active,
         updated_at: new Date().toISOString(),
       })

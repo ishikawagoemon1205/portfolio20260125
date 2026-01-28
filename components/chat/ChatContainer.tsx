@@ -491,19 +491,29 @@ export function ChatContainer({
               {messages.length > 2 && conversationId && (
                 <button
                   onClick={handleGenerateSite}
-                  disabled={isGeneratingSite || !hasEnoughRequirementInfo()}
+                  disabled={isGeneratingSite || !hasEnoughRequirementInfo() || !!generatedSiteHtml}
                   className={`px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 
                     text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity
                     flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed
-                    ${!hasEnoughRequirementInfo() ? 'opacity-50' : ''}`}
-                  title={hasEnoughRequirementInfo() 
-                    ? "会話内容からサイトを生成" 
-                    : "サイト生成には、もう少し詳しいご要望をお伺いする必要があります"}
+                    ${(!hasEnoughRequirementInfo() || generatedSiteHtml) ? 'opacity-50' : ''}`}
+                  title={generatedSiteHtml 
+                    ? "このセッションでは既にサイトを生成済みです" 
+                    : hasEnoughRequirementInfo() 
+                      ? "会話内容からサイトを生成" 
+                      : "サイト生成には、もう少し詳しいご要望をお伺いする必要があります"}
                 >
                   {isGeneratingSite ? (
                     <>
                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                       生成中...
+                    </>
+                  ) : generatedSiteHtml ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M5 13l4 4L19 7" />
+                      </svg>
+                      生成済み
                     </>
                   ) : (
                     <>
@@ -555,17 +565,24 @@ export function ChatContainer({
               {messages.length > 2 && conversationId && (
                 <button
                   onClick={handleGenerateSite}
-                  disabled={isGeneratingSite || !hasEnoughRequirementInfo()}
+                  disabled={isGeneratingSite || !hasEnoughRequirementInfo() || !!generatedSiteHtml}
                   className={`p-2 bg-gradient-to-r from-blue-500 to-cyan-500 
                     text-white rounded-lg hover:opacity-90 transition-opacity
                     disabled:opacity-50 disabled:cursor-not-allowed
-                    ${!hasEnoughRequirementInfo() ? 'opacity-50' : ''}`}
-                  title={hasEnoughRequirementInfo() 
-                    ? "サイト生成" 
-                    : "要件ヒアリングが必要です"}
+                    ${(!hasEnoughRequirementInfo() || generatedSiteHtml) ? 'opacity-50' : ''}`}
+                  title={generatedSiteHtml 
+                    ? "生成済み" 
+                    : hasEnoughRequirementInfo() 
+                      ? "サイト生成" 
+                      : "要件ヒアリングが必要です"}
                 >
                   {isGeneratingSite ? (
                     <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : generatedSiteHtml ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M5 13l4 4L19 7" />
+                    </svg>
                   ) : (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -621,17 +638,24 @@ export function ChatContainer({
                   handleGenerateSite();
                   setShowMobileMenu(false);
                 }}
-                disabled={isGeneratingSite || !hasEnoughRequirementInfo()}
+                disabled={isGeneratingSite || !hasEnoughRequirementInfo() || !!generatedSiteHtml}
                 className={`w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50 rounded-t-lg
-                  ${!hasEnoughRequirementInfo() ? 'opacity-50' : ''}`}
-                title={!hasEnoughRequirementInfo() ? '要件ヒアリングが必要です' : ''}
+                  ${(!hasEnoughRequirementInfo() || generatedSiteHtml) ? 'opacity-50' : ''}`}
+                title={generatedSiteHtml ? '生成済み' : !hasEnoughRequirementInfo() ? '要件ヒアリングが必要です' : ''}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-                {isGeneratingSite ? '生成中...' : 'サイト生成'}
-                {!hasEnoughRequirementInfo() && (
+                {generatedSiteHtml ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                )}
+                {isGeneratingSite ? '生成中...' : generatedSiteHtml ? '生成済み' : 'サイト生成'}
+                {!generatedSiteHtml && !hasEnoughRequirementInfo() && (
                   <span className="text-xs opacity-75">（要件不足）</span>
                 )}
               </button>

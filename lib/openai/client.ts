@@ -59,12 +59,14 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
 };
 
 /**
- * サイト生成用のAI設定（高品質）
+ * サイト生成用のAI設定（コスト最適化版）
+ * 目的: 訪問者にデザインイメージを想起させるプレビュー生成
+ * gpt-4o-miniでも十分なクオリティで、約16倍のコスト削減
  */
 export const SITE_GENERATION_SETTINGS: AISettings = {
-  model: 'gpt-4o',
-  temperature: 0.5,
-  maxTokens: 4096,
+  model: 'gpt-4o-mini',
+  temperature: 0.6,
+  maxTokens: 3000,
   topP: 1,
   frequencyPenalty: 0.1,
   presencePenalty: 0.1,
